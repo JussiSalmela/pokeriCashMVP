@@ -11,10 +11,7 @@ export default function MainScreen() {
    })
 
    const [gameState, setGameState] = useState<GameState>({
-      players: [
-         { name: 'Pelaaja 1', balance: 1000, bet: 0, folded: false },
-         { name: 'Pelaaja 2', balance: 1000, bet: 0, folded: false },
-      ],
+      players: [],
       pot: 0,
       toCall: 0,
       smallBlind: 5,
@@ -186,7 +183,6 @@ export default function MainScreen() {
                ) : null}
                <Text style={{ fontWeight: 'bold' }}>To call: {(gameState.toCall / 100).toFixed(2)} €</Text>
             </View>
-            <Text>vopittajat: {winners}</Text>
             {gameState.round === Round.Showdown ? (
                <Button
                   title="Winner, winner, chicken dinner"
