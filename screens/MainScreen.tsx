@@ -11,7 +11,29 @@ export default function MainScreen() {
    })
 
    const [gameState, setGameState] = useState<GameState>({
-      players: [],
+      players: [
+         {
+            name: 'Jussi',
+            balance: 1000,
+            bet: 0,
+            totalBet: 0,
+            folded: false
+         },
+         {
+            name: 'Kalle',
+            balance: 500,
+            bet: 0,
+            totalBet: 0,
+            folded: false
+         },
+         {
+            name: 'Pertti',
+            balance: 300,
+            bet: 0,
+            totalBet: 0,
+            folded: false
+         },
+      ],
       pot: 0,
       toCall: 0,
       smallBlind: 5,
@@ -37,37 +59,103 @@ export default function MainScreen() {
       }
    }, [gameState.players]);
 
+   // const calculateWinnings = () => {
+   //    if (winners.length === 0) return;
+   //    const newPlayers = [...gameState.players];
+   //    const winnings = Math.floor(gameState.pot / winners.length);
+   //    const leftovers = gameState.pot % winners.length;
+
+   //    newPlayers.forEach(player => {
+   //       player.folded = false;
+   //    });
+
+   //    winners.forEach((winnerIndex, i) => {
+   //       newPlayers[winnerIndex].balance += winnings;
+   //       if (i < leftovers) {
+   //          newPlayers[winnerIndex].balance += 1;
+   //       }
+   //    });
+
+   //    setGameState({
+   //       ...gameState,
+   //       players: newPlayers,
+   //       pot: 0,
+   //       round: Round.End,
+   //    });
+   //    setWinners([]);
+   // }
+
    const calculateWinnings = () => {
       if (winners.length === 0) return;
       const newPlayers = [...gameState.players];
-      const winnings = Math.floor(gameState.pot / winners.length);
-      const leftovers = gameState.pot % winners.length;
-
+      let winningPlayers = [...winners];
       newPlayers.forEach(player => {
          player.folded = false;
       });
-   
-      winners.forEach((winnerIndex, i) => {
-         newPlayers[winnerIndex].balance += winnings;
-         if (i < leftovers) {
-            newPlayers[winnerIndex].balance += 1;
-         }
-      });
-   
+      let totalPot = gameState.pot;
+
+      while (winningPlayers.some(winnerIndex => newPlayers[winnerIndex].totalBet > 0)) {
+         let smallestTotalOfWinners = Math.min(...winningPlayers.map(winnerIndex => newPlayers[winnerIndex].totalBet));
+
+         let winningPot = 0;
+
+         newPlayers.forEach((player) => {
+            const contribution = Math.min(smallestTotalOfWinners, player.totalBet);
+            winningPot += contribution;
+            player.totalBet -= contribution;
+         });
+
+         const winnings = Math.floor(winningPot / winningPlayers.length);
+         const leftovers = winningPot % winningPlayers.length;
+
+         winningPlayers.forEach((winnerIndex, i) => {
+            newPlayers[winnerIndex].balance += winnings;
+            if (i < leftovers) {
+               newPlayers[winnerIndex].balance += 1;
+            }
+         });
+         winningPlayers = winningPlayers.filter(winnerIndex => newPlayers[winnerIndex].totalBet > 0);
+         totalPot -= winningPot;
+      }
+
+      setWinners([]);
+
+      let playersWithBet = newPlayers.filter(player => player.totalBet > 0);
+
+      if (playersWithBet.length === 1) {
+         playersWithBet[0].balance += playersWithBet[0].totalBet;
+         playersWithBet[0].totalBet = 0;
+         setGameState({
+            ...gameState,
+            players: newPlayers,
+            pot: 0,
+            round: Round.End,
+         });
+      }
+
+      if (newPlayers.some(player => player.totalBet > 0)) {
+         setGameState({
+            ...gameState,
+            players: newPlayers,
+            pot: totalPot,
+         });
+         return;
+      }
+
       setGameState({
          ...gameState,
          players: newPlayers,
          pot: 0,
          round: Round.End,
       });
-      setWinners([]);
-   }
+   };
 
    const removePlayer = (index: number) => {
       const newPlayers = [...gameState.players]
       newPlayers.splice(index, 1)
       setGameState({ ...gameState, players: newPlayers })
    }
+
    const setWinnersArray = (index: number) => {
       if (winners.includes(index)) {
          setWinners(winners.filter(winner => winner !== index));
@@ -103,6 +191,7 @@ export default function MainScreen() {
                            name: newPlayer.name,
                            balance: newPlayer.balance,
                            bet: 0,
+                           totalBet: 0,
                            folded: false
                         }]
                      })
@@ -134,7 +223,7 @@ export default function MainScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                <Text style={{ fontWeight: 'bold' }}>Pot: {(gameState.pot / 100).toFixed(2)} €</Text>
                {gameState.round === Round.End ? null : <Text style={{ fontWeight: 'bold' }}>{gameState.round}</Text>}
-               {gameState.round != Round.Showdown ? (
+               {gameState.round != Round.Showdown && gameState.players.length > 1 ? (
                   <Button
                      title={gameState.round === Round.End ? "Start" : "Next stages"}
                      onPress={() => {
@@ -146,6 +235,9 @@ export default function MainScreen() {
                         switch (gameState.round) {
                            case Round.End:
                               nextRound = Round.PreFlop;
+                              newPlayers.forEach(player => {
+                                 player.totalBet = 0
+                              })
                               let dealer;
                               if (gameState.dealer === null) {
                                  dealer = Math.floor(Math.random() * gameState.players.length);
@@ -153,8 +245,10 @@ export default function MainScreen() {
                                  dealer = (gameState.dealer + 1) % gameState.players.length;
                               }
                               newPlayers[(dealer + 1) % gameState.players.length].bet = gameState.smallBlind;
+                              newPlayers[(dealer + 1) % gameState.players.length].totalBet = gameState.smallBlind;
                               newPlayers[(dealer + 1) % gameState.players.length].balance -= gameState.smallBlind;
                               newPlayers[(dealer + 2) % gameState.players.length].bet = gameState.bigBlind;
+                              newPlayers[(dealer + 2) % gameState.players.length].totalBet = gameState.bigBlind;
                               newPlayers[(dealer + 2) % gameState.players.length].balance -= gameState.bigBlind;
                               setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: gameState.bigBlind, pot: gameState.smallBlind + gameState.bigBlind, dealer: dealer, turn: (dealer + 3) % gameState.players.length })
                               break;
@@ -177,17 +271,17 @@ export default function MainScreen() {
                            default:
                               break;
                         }
-                        // setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: 0 })
                      }}
                   />
                ) : null}
                <Text style={{ fontWeight: 'bold' }}>To call: {(gameState.toCall / 100).toFixed(2)} €</Text>
             </View>
+            {/* <Text>winners: {winners}</Text> */}
             {gameState.round === Round.Showdown ? (
                <Button
                   title="Winner, winner, chicken dinner"
                   onPress={() => {
-                        calculateWinnings()
+                     calculateWinnings()
                   }}
                />
             ) : null}
@@ -204,6 +298,7 @@ export default function MainScreen() {
                      setGameState={setGameState}
                      removePlayer={removePlayer}
                      setWinnersArray={setWinnersArray}
+                     winners={winners}
                   />
                </View>
             )}

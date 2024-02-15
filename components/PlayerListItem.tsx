@@ -8,12 +8,12 @@ type Props = {
    index: number,
    gameState: GameState,
    setGameState: React.Dispatch<React.SetStateAction<GameState>>
-   winner: (index: number) => void,
    removePlayer: (index: number) => void,
    setWinnersArray: (index: number) => void,
+   winners: number[]
 }
 
-export default function PlayerListItem({ player, index, gameState, setGameState, winner, removePlayer, setWinnersArray }: Props) {
+export default function PlayerListItem({ player, index, gameState, setGameState, removePlayer, setWinnersArray, winners }: Props) {
 
    const [positon, setPosition] = useState('');
    const [betValue, setBetValue] = useState('');
@@ -26,10 +26,15 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
    }, [gameState.dealer])
 
    useEffect(() => {
-      if (gameState.turn === index && player.folded) {
+      if ((gameState.turn === index && player.folded)) {
+      // if ((gameState.turn === index && player.folded) || (gameState.turn === index && player.balance === 0)) {
          setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length })
       }
    }, [gameState.turn])
+
+   useEffect(() => {
+      if (winners.length === 0) setToggleCheckBox(false);
+   }, [winners])
 
    const calculatePlayerPosition = () => {
       if (gameState.dealer === null) return
@@ -44,11 +49,12 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
 
    const bet = (value: number) => {
       const bet = value
-      if (bet > 0 && bet <= player.balance && bet >= gameState.toCall) {
+      if (bet >= gameState.bigBlind && bet <= player.balance && bet >= gameState.toCall) {
          const newPlayers = [...gameState.players]
          const toCall = newPlayers[index].bet + bet
          newPlayers[index].balance -= bet
          newPlayers[index].bet += bet
+         newPlayers[index].totalBet += bet
          setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + bet), toCall: toCall, turn: (gameState.turn + 1) % gameState.players.length })
          setBetValue('')
          setBetPercentage('')
@@ -65,7 +71,8 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
          call = bet - newPlayers[index].bet
       }
       newPlayers[index].balance -= call
-      newPlayers[index].bet = bet
+      newPlayers[index].totalBet += call
+      newPlayers[index].bet += call
       setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + call), turn: (gameState.turn + 1) % gameState.players.length })
       setBetValue('')
       setBetPercentage('')
@@ -84,8 +91,9 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                </View>
                <Text>Balance: {(player.balance / 100).toFixed(2)} €</Text>
             </View>
-            <View>
-               <Text>Bet: {(player.bet / 100).toFixed(2)} €</Text>
+            <View style={{alignItems: 'flex-end'}}>
+               <Text>Total bet: {(player.totalBet / 100).toFixed(2)} €</Text>
+               <Text>Round bet: {(player.bet / 100).toFixed(2)} €</Text>
             </View>
          </View>
          {
@@ -124,7 +132,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                   </>
                ) :
                   gameState.round === Round.Showdown ? (
-                     player.folded ? null : (
+                     player.folded || player.totalBet === 0 ? null : (
                         <>
                            <CheckBox
                              title="Winner"
@@ -134,14 +142,6 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  setWinnersArray(index);
                               }}
                            />
-                           {/* <Button
-                              title="Winner"
-                              onPress={() => {
-                                 if (winner) {
-                                    winner(index)
-                                 }
-                              }}
-                           /> */}
                         </>
                      )
                   ) :

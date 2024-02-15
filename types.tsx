@@ -2,6 +2,7 @@ type Player = {
    name: string,
    balance: number,
    bet: number,
+   totalBet: number,
    folded: boolean,
 }
 
