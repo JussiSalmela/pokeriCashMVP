@@ -277,10 +277,12 @@ export default function MainScreen() {
                      }}
                   />
                ) : null}
-               <Text style={{ fontWeight: 'bold' }}>To call: {(gameState.toCall / 100).toFixed(2)} €</Text>
+               <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontWeight: 'bold' }}>To call: {(gameState.toCall / 100).toFixed(2)} €</Text>
+               </View>
             </View>
             {/* <Text>winners: {winners}</Text> */}
-            <Text>rounstart: {gameState.roundStart.toString()}, lastAction: {gameState.lastAction}</Text>
+            {/* <Text>rounstart: {gameState.roundStart.toString()}, lastAction: {gameState.lastAction}</Text> */}
             {gameState.round === Round.Showdown ? (
                <Button
                   title="Winner, winner, chicken dinner"

@@ -26,9 +26,8 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
    }, [gameState.dealer])
 
    useEffect(() => {
-      // if ((gameState.turn === index && player.folded)) {
       if ((gameState.turn === index && player.folded) || (gameState.turn === index && player.balance === 0 && gameState.round != Round.Showdown && gameState.round != Round.End)) {
-         setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false})
+         setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
       }
    }, [gameState.turn])
 
@@ -49,10 +48,9 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
 
    const bet = (value: number) => {
       const bet = value
-      if (bet === player.balance || (bet >= (gameState.bigBlind) && bet <= player.balance && (bet >= gameState.toCall))) {
-
-         const newPlayers = [...gameState.players]
-         const toCall = newPlayers[index].bet + bet
+      const newPlayers = [...gameState.players]
+      const toCall = newPlayers[index].bet + bet
+      if (bet === player.balance || (bet >= gameState.bigBlind && bet <= player.balance && toCall >= gameState.toCall * 2)) {
          newPlayers[index].balance -= bet
          newPlayers[index].bet += bet
          newPlayers[index].totalBet += bet
@@ -111,7 +109,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                         }}
                         style={[styles.input, { width: 150 }]}
                         keyboardType="numeric"
-                        placeholder="Add balance (snt)"
+                        placeholder="Add balance (cent)"
                      />
                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <Button
@@ -149,7 +147,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                   ) :
                      gameState.turn === index && !player.folded ? (
                         <>
-                           <View style={{ flexDirection: 'row' }}>
+                           <View style={{ flexDirection: 'row', alignItems:'center', marginBottom: 20 }}>
                               <TextInput
                                  value={betValue}
                                  onChangeText={text => {
@@ -168,8 +166,18 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  }}
                                  style={[styles.input, { marginLeft: 10 }]}
                                  keyboardType="numeric"
-                                 placeholder={gameState.toCall > 0 ? "Raise %" : "Bet %"}
+                                 placeholder={gameState.toCall > 0 ? "Raise pot%" : "Bet pot%"}
                               />
+                              <View style={{marginLeft: 20}}>
+                                 <Button
+                                    title='Min raise'
+                                    onPress={() => {
+                                       const minRaise = gameState.toCall * 2 - player.bet
+                                       setBetValue(minRaise.toString())
+                                       setBetPercentage(Math.ceil((minRaise / gameState.pot) * 100).toString())
+                                    }}
+                                 />
+                              </View>
                            </View>
                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                               <Button
