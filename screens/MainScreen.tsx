@@ -12,27 +12,27 @@ export default function MainScreen() {
 
    const [gameState, setGameState] = useState<GameState>({
       players: [
-         {
-            name: 'Jussi',
-            balance: 1000,
-            bet: 0,
-            totalBet: 0,
-            folded: false
-         },
-         {
-            name: 'Kalle',
-            balance: 500,
-            bet: 0,
-            totalBet: 0,
-            folded: false
-         },
-         {
-            name: 'Pertti',
-            balance: 300,
-            bet: 0,
-            totalBet: 0,
-            folded: false
-         },
+         // {
+         //    name: 'Jussi',
+         //    balance: 1000,
+         //    bet: 0,
+         //    totalBet: 0,
+         //    folded: false
+         // },
+         // {
+         //    name: 'Kalle',
+         //    balance: 500,
+         //    bet: 0,
+         //    totalBet: 0,
+         //    folded: false
+         // },
+         // {
+         //    name: 'Pertti',
+         //    balance: 300,
+         //    bet: 0,
+         //    totalBet: 0,
+         //    folded: false
+         // },
       ],
       pot: 0,
       toCall: 0,

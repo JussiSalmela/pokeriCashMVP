@@ -172,7 +172,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  <Button
                                     title='Min raise'
                                     onPress={() => {
-                                       const minRaise = gameState.toCall * 2 - player.bet
+                                       const minRaise = Math.max(gameState.toCall * 2 - player.bet, gameState.bigBlind)
                                        setBetValue(minRaise.toString())
                                        setBetPercentage(Math.ceil((minRaise / gameState.pot) * 100).toString())
                                     }}
