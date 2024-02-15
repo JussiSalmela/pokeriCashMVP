@@ -64,8 +64,13 @@ export default function MainScreen() {
    }, [gameState.players]);
 
    useEffect(() => {
+      if (gameState.players.length < 2) return;
       const newPlayers = [...gameState.players];
       let activePlayers = newPlayers.filter(player => !player.folded && player.balance > 0);
+      if (activePlayers.length === 0 && (gameState.round != Round.Showdown && gameState.round != Round.End)) {
+         changeStage();
+         return;
+      }
       if (activePlayers.length === 1 && (activePlayers[0].bet >= gameState.toCall && gameState.round != Round.Showdown && gameState.round != Round.End)) {
          changeStage();
          return;
@@ -241,7 +246,7 @@ export default function MainScreen() {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                <Text style={{ fontWeight: 'bold' }}>Pot: {(gameState.pot / 100).toFixed(2)} €</Text>
                {gameState.round === Round.End ? null : <Text style={{ fontWeight: 'bold' }}>{gameState.round}</Text>}
-               {gameState.round === Round.End && gameState.players.length > 1 ? (
+               {gameState.round === Round.End && gameState.players.length > 1 && !gameState.players.some(player => player.balance < gameState.bigBlind) && gameState.bigBlind > 0 ? (
                   <Button
                      title="Start"
                      onPress={() => {

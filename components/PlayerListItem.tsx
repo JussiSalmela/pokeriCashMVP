@@ -87,7 +87,8 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                   <Text>{index === gameState.dealer ? '   (BTN)' : null}</Text>
                   <Text>{positon != '' ? '   ' + positon : ''}</Text>
                   <Text style={{ fontWeight: 'bold' }}>{player.folded ? '   FOLD' : ''}</Text>
-                  <Text style={{ fontWeight: 'bold' }}>{player.balance === 0 ? '   ALL-IN' : ''}</Text>
+                  <Text style={{ fontWeight: 'bold' }}>{player.balance === 0 && player.totalBet != 0 ? '   ALL-IN' : ''}</Text>
+                  {/* <Text style={{ fontWeight: 'bold' }}>{player.balance === 0 && player.totalBet === 0 ? '   SITTING OUT' : ''}</Text> */}
                </View>
                <Text>Balance: {(player.balance / 100).toFixed(2)} €</Text>
             </View>
@@ -109,14 +110,14 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                         }}
                         style={[styles.input, { width: 150 }]}
                         keyboardType="numeric"
-                        placeholder="Add balance (cent)"
+                        placeholder="Balance input (cent)"
                      />
                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                         <Button
                            title="Add balance"
                            onPress={() => {
                               const add = parseInt(addBalance)
-                              if (add > 0) {
+                              if (typeof add === 'number') {
                                  const newPlayers = [...gameState.players]
                                  newPlayers[index].balance += add
                                  setGameState({ ...gameState, players: newPlayers })
