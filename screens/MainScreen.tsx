@@ -41,6 +41,8 @@ export default function MainScreen() {
       dealer: null,
       round: Round.End,
       turn: 0,
+      lastAction: 0,
+      roundStart: true
    })
 
    const [winners, setWinners] = useState<number[]>([]);
@@ -55,35 +57,25 @@ export default function MainScreen() {
             ...gameState,
             players: gameState.players.map(player => player.name === winner.name ? winner : { ...player, folded: false }),
             round: Round.End,
+            pot: 0,
+            toCall: 0,
          });
       }
    }, [gameState.players]);
 
-   // const calculateWinnings = () => {
-   //    if (winners.length === 0) return;
-   //    const newPlayers = [...gameState.players];
-   //    const winnings = Math.floor(gameState.pot / winners.length);
-   //    const leftovers = gameState.pot % winners.length;
-
-   //    newPlayers.forEach(player => {
-   //       player.folded = false;
-   //    });
-
-   //    winners.forEach((winnerIndex, i) => {
-   //       newPlayers[winnerIndex].balance += winnings;
-   //       if (i < leftovers) {
-   //          newPlayers[winnerIndex].balance += 1;
-   //       }
-   //    });
-
-   //    setGameState({
-   //       ...gameState,
-   //       players: newPlayers,
-   //       pot: 0,
-   //       round: Round.End,
-   //    });
-   //    setWinners([]);
-   // }
+   useEffect(() => {
+      const newPlayers = [...gameState.players];
+      let activePlayers = newPlayers.filter(player => !player.folded && player.balance > 0);
+      if (activePlayers.length === 1 && (activePlayers[0].bet >= gameState.toCall && gameState.round != Round.Showdown && gameState.round != Round.End)) {
+         changeStage();
+         return;
+      }
+      if (gameState.roundStart) return;
+      if (gameState.turn === gameState.lastAction) {
+         changeStage();
+         return;
+      }
+   }, [gameState.turn, gameState.round]);
 
    const calculateWinnings = () => {
       if (winners.length === 0) return;
@@ -164,6 +156,32 @@ export default function MainScreen() {
       }
    }
 
+   const changeStage = () => {
+      const newPlayers = [...gameState.players]
+      newPlayers.forEach(player => {
+         player.bet = 0
+      })
+      let nextRound = gameState.round;
+      switch (gameState.round) {
+         case Round.PreFlop:
+            nextRound = Round.Flop;
+            break;
+         case Round.Flop:
+            nextRound = Round.Turn;
+            break;
+         case Round.Turn:
+            nextRound = Round.River;
+            break;
+         case Round.River:
+            nextRound = Round.Showdown;
+            break;
+         default:
+            break;
+      }
+      setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: 0, turn: gameState.dealer != null ? (gameState.dealer + 1) % gameState.players.length : 0, lastAction: gameState.dealer != null ? (gameState.dealer + 1) % gameState.players.length : 0, roundStart: true })
+   }
+
+
 
    return (
       <View style={styles.mainContainer}>
@@ -216,67 +234,53 @@ export default function MainScreen() {
                   }}
                   style={styles.input}
                   keyboardType="numeric"
-                  placeholder="BB (snt)"
+                  placeholder="BB (cent)"
                   editable={gameState.round === Round.End}
                />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                <Text style={{ fontWeight: 'bold' }}>Pot: {(gameState.pot / 100).toFixed(2)} €</Text>
                {gameState.round === Round.End ? null : <Text style={{ fontWeight: 'bold' }}>{gameState.round}</Text>}
-               {gameState.round != Round.Showdown && gameState.players.length > 1 ? (
+               {gameState.round === Round.End && gameState.players.length > 1 ? (
                   <Button
-                     title={gameState.round === Round.End ? "Start" : "Next stages"}
+                     title="Start"
                      onPress={() => {
                         const newPlayers = [...gameState.players]
                         newPlayers.forEach(player => {
                            player.bet = 0
+                           // player.totalBet = 0
                         })
-                        let nextRound = gameState.round;
-                        switch (gameState.round) {
-                           case Round.End:
-                              nextRound = Round.PreFlop;
-                              newPlayers.forEach(player => {
-                                 player.totalBet = 0
-                              })
-                              let dealer;
-                              if (gameState.dealer === null) {
-                                 dealer = Math.floor(Math.random() * gameState.players.length);
-                              } else {
-                                 dealer = (gameState.dealer + 1) % gameState.players.length;
-                              }
-                              newPlayers[(dealer + 1) % gameState.players.length].bet = gameState.smallBlind;
-                              newPlayers[(dealer + 1) % gameState.players.length].totalBet = gameState.smallBlind;
-                              newPlayers[(dealer + 1) % gameState.players.length].balance -= gameState.smallBlind;
-                              newPlayers[(dealer + 2) % gameState.players.length].bet = gameState.bigBlind;
-                              newPlayers[(dealer + 2) % gameState.players.length].totalBet = gameState.bigBlind;
-                              newPlayers[(dealer + 2) % gameState.players.length].balance -= gameState.bigBlind;
-                              setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: gameState.bigBlind, pot: gameState.smallBlind + gameState.bigBlind, dealer: dealer, turn: (dealer + 3) % gameState.players.length })
-                              break;
-                           case Round.PreFlop:
-                              nextRound = Round.Flop;
-                              setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: 0, turn: gameState.dealer != null ? (gameState.dealer + 1) % gameState.players.length : 0 })
-                              break;
-                           case Round.Flop:
-                              nextRound = Round.Turn;
-                              setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: 0, turn: gameState.dealer != null ? (gameState.dealer + 1) % gameState.players.length : 0 })
-                              break;
-                           case Round.Turn:
-                              nextRound = Round.River;
-                              setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: 0, turn: gameState.dealer != null ? (gameState.dealer + 1) % gameState.players.length : 0 })
-                              break;
-                           case Round.River:
-                              nextRound = Round.Showdown;
-                              setGameState({ ...gameState, players: newPlayers, round: nextRound, toCall: 0, turn: gameState.dealer != null ? (gameState.dealer + 1) % gameState.players.length : 0 })
-                              break;
-                           default:
-                              break;
+                        let nextRound = Round.PreFlop;
+                        let dealer;
+                        if (gameState.dealer === null) {
+                           dealer = Math.floor(Math.random() * gameState.players.length);
+                        } else {
+                           dealer = (gameState.dealer + 1) % gameState.players.length;
                         }
+                        newPlayers[(dealer + 1) % gameState.players.length].bet = gameState.smallBlind;
+                        newPlayers[(dealer + 1) % gameState.players.length].totalBet = gameState.smallBlind;
+                        newPlayers[(dealer + 1) % gameState.players.length].balance -= gameState.smallBlind;
+                        newPlayers[(dealer + 2) % gameState.players.length].bet = gameState.bigBlind;
+                        newPlayers[(dealer + 2) % gameState.players.length].totalBet = gameState.bigBlind;
+                        newPlayers[(dealer + 2) % gameState.players.length].balance -= gameState.bigBlind;
+                        setGameState({
+                           ...gameState,
+                           players: newPlayers,
+                           round: nextRound,
+                           toCall: gameState.bigBlind,
+                           pot: gameState.smallBlind + gameState.bigBlind,
+                           dealer: dealer,
+                           turn: (dealer + 3) % gameState.players.length,
+                           lastAction: (dealer + 3) % gameState.players.length,
+                           roundStart: true
+                        })
                      }}
                   />
                ) : null}
                <Text style={{ fontWeight: 'bold' }}>To call: {(gameState.toCall / 100).toFixed(2)} €</Text>
             </View>
             {/* <Text>winners: {winners}</Text> */}
+            <Text>rounstart: {gameState.roundStart.toString()}, lastAction: {gameState.lastAction}</Text>
             {gameState.round === Round.Showdown ? (
                <Button
                   title="Winner, winner, chicken dinner"

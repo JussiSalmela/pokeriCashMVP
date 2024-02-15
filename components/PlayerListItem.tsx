@@ -26,9 +26,9 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
    }, [gameState.dealer])
 
    useEffect(() => {
-      if ((gameState.turn === index && player.folded)) {
-      // if ((gameState.turn === index && player.folded) || (gameState.turn === index && player.balance === 0)) {
-         setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length })
+      // if ((gameState.turn === index && player.folded)) {
+      if ((gameState.turn === index && player.folded) || (gameState.turn === index && player.balance === 0 && gameState.round != Round.Showdown && gameState.round != Round.End)) {
+         setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false})
       }
    }, [gameState.turn])
 
@@ -49,13 +49,14 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
 
    const bet = (value: number) => {
       const bet = value
-      if (bet >= gameState.bigBlind && bet <= player.balance && bet >= gameState.toCall) {
+      if (bet === player.balance || (bet >= (gameState.bigBlind) && bet <= player.balance && (bet >= gameState.toCall))) {
+
          const newPlayers = [...gameState.players]
          const toCall = newPlayers[index].bet + bet
          newPlayers[index].balance -= bet
          newPlayers[index].bet += bet
          newPlayers[index].totalBet += bet
-         setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + bet), toCall: toCall, turn: (gameState.turn + 1) % gameState.players.length })
+         setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + bet), toCall: toCall, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false, lastAction: index })
          setBetValue('')
          setBetPercentage('')
       }
@@ -73,7 +74,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
       newPlayers[index].balance -= call
       newPlayers[index].totalBet += call
       newPlayers[index].bet += call
-      setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + call), turn: (gameState.turn + 1) % gameState.players.length })
+      setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + call), turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
       setBetValue('')
       setBetPercentage('')
    }
@@ -86,12 +87,13 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                <View style={{ flexDirection: 'row' }}>
                   <Text style={{ fontWeight: 'bold' }}>{player.name}</Text>
                   <Text>{index === gameState.dealer ? '   (BTN)' : null}</Text>
-                  <Text>   {positon}</Text>
-                  <Text style={{ fontWeight: 'bold' }}>   {player.folded ? 'Fold' : ''}</Text>
+                  <Text>{positon != '' ? '   ' + positon : ''}</Text>
+                  <Text style={{ fontWeight: 'bold' }}>{player.folded ? '   FOLD' : ''}</Text>
+                  <Text style={{ fontWeight: 'bold' }}>{player.balance === 0 ? '   ALL-IN' : ''}</Text>
                </View>
                <Text>Balance: {(player.balance / 100).toFixed(2)} €</Text>
             </View>
-            <View style={{alignItems: 'flex-end'}}>
+            <View style={{ alignItems: 'flex-end' }}>
                <Text>Total bet: {(player.totalBet / 100).toFixed(2)} €</Text>
                <Text>Round bet: {(player.bet / 100).toFixed(2)} €</Text>
             </View>
@@ -135,7 +137,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                      player.folded || player.totalBet === 0 ? null : (
                         <>
                            <CheckBox
-                             title="Winner"
+                              title="Winner"
                               checked={toggleCheckBox}
                               onPress={() => {
                                  setToggleCheckBox(!toggleCheckBox)
@@ -156,7 +158,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  }}
                                  style={styles.input}
                                  keyboardType="numeric"
-                                 placeholder="Bet (snt)"
+                                 placeholder={gameState.toCall > 0 ? "Raise (cent)" : "Bet (cent)"}
                               />
                               <TextInput
                                  value={betPercentage}
@@ -166,12 +168,12 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  }}
                                  style={[styles.input, { marginLeft: 10 }]}
                                  keyboardType="numeric"
-                                 placeholder="Bet %"
+                                 placeholder={gameState.toCall > 0 ? "Raise %" : "Bet %"}
                               />
                            </View>
                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                               <Button
-                                 title="Bet"
+                                 title={gameState.toCall > 0 ? "Raise" : "Bet"}
                                  onPress={() => bet(parseInt(betValue))}
                               />
                               <Button
@@ -184,7 +186,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                     if (gameState.toCall != 0) {
                                        call()
                                     } else {
-                                       setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length })
+                                       setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
 
                                     }
                                  }}
@@ -194,7 +196,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  onPress={() => {
                                     const newPlayers = [...gameState.players]
                                     newPlayers[index].folded = true
-                                    setGameState({ ...gameState, players: newPlayers, turn: (gameState.turn + 1) % gameState.players.length })
+                                    setGameState({ ...gameState, players: newPlayers, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
                                  }}
                               />
                            </View>

@@ -15,6 +15,8 @@ type GameState = {
    dealer: number | null,
    round: Round,
    turn: number,
+   lastAction: number,
+   roundStart: boolean
 }
 
 enum Round {
