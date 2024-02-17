@@ -20,7 +20,7 @@ type GameState = {
 }
 
 enum Round {
-   PreFlop = 'PreFlop',
+   PreFlop = 'Preflop',
    Flop = 'Flop',
    Turn = 'Turn',
    River = 'River',

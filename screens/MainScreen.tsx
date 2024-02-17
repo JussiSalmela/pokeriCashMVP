@@ -48,7 +48,7 @@ export default function MainScreen() {
    const [winners, setWinners] = useState<number[]>([]);
 
    //if only 1 player left after all folded todo reset total bets
-   
+
    useEffect(() => {
       if (gameState.players.length < 2) return;
       const activePlayers = gameState.players.filter(player => !player.folded);
@@ -246,8 +246,8 @@ export default function MainScreen() {
                />
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-               <Text style={{ fontWeight: 'bold' }}>Pot: {(gameState.pot / 100).toFixed(2)} €</Text>
-               {gameState.round === Round.End ? null : <Text style={{ fontWeight: 'bold' }}>{gameState.round}</Text>}
+               <Text style={{ fontWeight: 'bold' }}>Players: {gameState.players.filter((p) => p.folded === false).length}</Text>
+               {gameState.round === Round.End ? null : <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#8b0000' }}>{gameState.round}</Text>}
                {gameState.round === Round.End && gameState.players.length > 1 && !gameState.players.some(player => player.balance < gameState.bigBlind) && gameState.bigBlind > 0 ? (
                   <Button
                      title="Start"
@@ -285,6 +285,7 @@ export default function MainScreen() {
                   />
                ) : null}
                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontWeight: 'bold' }}>Pot: {(gameState.pot / 100).toFixed(2)} €</Text>
                   <Text style={{ fontWeight: 'bold' }}>To call: {(gameState.toCall / 100).toFixed(2)} €</Text>
                </View>
             </View>
