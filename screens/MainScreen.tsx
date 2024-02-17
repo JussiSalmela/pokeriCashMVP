@@ -47,6 +47,8 @@ export default function MainScreen() {
 
    const [winners, setWinners] = useState<number[]>([]);
 
+   //if only 1 player left after all folded todo reset total bets
+   
    useEffect(() => {
       if (gameState.players.length < 2) return;
       const activePlayers = gameState.players.filter(player => !player.folded);
@@ -235,7 +237,7 @@ export default function MainScreen() {
                <TextInput
                   value={gameState.bigBlind !== 0 ? gameState.bigBlind.toString() : ''}
                   onChangeText={text => {
-                     setGameState({ ...gameState, bigBlind: text ? parseInt(text) : 0, smallBlind: text ? Math.ceil(parseInt(text) / 2) : 0 })
+                     setGameState({ ...gameState, bigBlind: text ? parseInt(text) : 0, smallBlind: text ? parseInt(text) === 1 ? 1 : Math.floor(parseInt(text) / 2) : 0 })
                   }}
                   style={styles.input}
                   keyboardType="numeric"
