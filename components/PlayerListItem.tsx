@@ -19,7 +19,8 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
    const [betValue, setBetValue] = useState('');
    const [betPercentage, setBetPercentage] = useState('');
    const [addBalance, setAddBalance] = useState('');
-   const [toggleCheckBox, setToggleCheckBox] = useState(false)
+   const [toggleCheckBox, setToggleCheckBox] = useState(false);
+   const [modifyBalance, setModifyBalance] = useState(false);
 
    useEffect(() => {
       calculatePlayerPosition()
@@ -74,11 +75,24 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
       }
    }
 
+   const allin = () => {
+      const newPlayers = [...gameState.players]
+      let addedBet = newPlayers[index].bet + newPlayers[index].balance;
+      let allIn = newPlayers[index].balance
+      newPlayers[index].totalBet += newPlayers[index].balance
+      newPlayers[index].balance = 0
+      newPlayers[index].bet = addedBet
+      setGameState({ ...gameState, players: newPlayers, pot: (gameState.pot + allIn), toCall: Math.max(gameState.toCall, addedBet), turn: (gameState.turn + 1) % gameState.players.length, roundStart: false, lastAction: index })
+      setBetValue('')
+      setBetPercentage('')
+
+   }
+
    const call = () => {
       const bet = gameState.toCall
       const newPlayers = [...gameState.players]
       let call;
-      if (bet > player.balance) {
+      if ((bet - newPlayers[index].bet) > player.balance) {
          call = player.balance;
       } else {
          call = bet - newPlayers[index].bet
@@ -98,16 +112,23 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
             <View>
                <View style={{ flexDirection: 'row' }}>
                   <Text style={{ fontWeight: 'bold' }}>{player.name}</Text>
-                  {index === gameState.dealer ? <Badge containerStyle={{ marginLeft: 10 }} status="success" value="BTN"/> : null}
-                  {position != '' ? <Badge containerStyle={{ marginLeft: 10 }} status="primary" value={position}/> : null}
-                  {player.folded ? <Badge containerStyle={{ marginLeft: 10 }} status="error" value="FOLD"/> : null}
-                  {player.balance === 0 && player.totalBet != 0 ? <Badge containerStyle={{ marginLeft: 10 }} status="warning" value="ALL-IN"/> : null}
+                  {gameState.round === Round.End ? (
+                     null
+                  ) : (
+                     <>
+                        {index === gameState.dealer ? <Badge containerStyle={{ marginLeft: 10 }} status="success" value="BTN" /> : null}
+                        {position != '' ? <Badge containerStyle={{ marginLeft: 10 }} status="primary" value={position} /> : null}
+                        {player.folded ? <Badge containerStyle={{ marginLeft: 10 }} status="error" value="FOLD" /> : null}
+                        {player.balance === 0 && player.totalBet != 0 ? <Badge containerStyle={{ marginLeft: 10 }} status="warning" value="ALL-IN" /> : null}
+                     </>
+                  )}
                </View>
+               <Text>Buy-In: {(player.buyin / 100).toFixed(2)} €</Text>
                <Text>Balance: {(player.balance / 100).toFixed(2)} €</Text>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
+            <View style={{ alignItems: 'flex-end', marginTop: 20 }}>
                <Text>Total bet: {(player.totalBet / 100).toFixed(2)} €</Text>
-               <Text>Round bet: {(player.bet / 100).toFixed(2)} €</Text>
+               <Text>Put in pot: {(player.bet / 100).toFixed(2)} €</Text>
             </View>
          </View>
          {
@@ -116,32 +137,46 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
             ) :
                gameState.round === Round.End ? (
                   <>
-                     <TextInput
-                        value={addBalance}
-                        onChangeText={text => {
-                           setAddBalance(text)
-                        }}
-                        style={[styles.input, { width: 150 }]}
-                        keyboardType="numeric"
-                        placeholder="Balance input (cent)"
-                     />
-                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Button
-                           title="Add balance"
-                           onPress={() => {
-                              const add = parseInt(addBalance)
-                              if (typeof add === 'number') {
-                                 const newPlayers = [...gameState.players]
-                                 newPlayers[index].balance += add
-                                 setGameState({ ...gameState, players: newPlayers })
-                                 setAddBalance('')
-                              }
+                     <View style={{flexDirection: 'row', alignItems: 'center', marginVertical: 10}}>
+                        <TextInput
+                           value={addBalance}
+                           onChangeText={text => {
+                              setAddBalance(text)
                            }}
+                           style={[styles.input, { width: 150 }]}
+                           keyboardType="numeric"
+                           placeholder="Balance input (cent)"
                         />
-                        <Button
-                           title="Leave game"
-                           onPress={() => removePlayer(index)}
-                        />
+                        <CheckBox
+                              title="Modify balance"
+                              checked={modifyBalance}
+                              onPress={() => {
+                                 setModifyBalance(!modifyBalance)
+                              }}
+                           />
+                     </View>
+                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={styles.basicButton}>
+                           <Button
+                              title={modifyBalance ? "Modify balance" : "Add balance"}
+                              onPress={() => {
+                                 const add = parseInt(addBalance)
+                                 if (typeof add === 'number') {
+                                    const newPlayers = [...gameState.players]
+                                    newPlayers[index].balance += add
+                                    if (!modifyBalance) newPlayers[index].buyin += add
+                                    setGameState({ ...gameState, players: newPlayers })
+                                    setAddBalance('')
+                                 }
+                              }}
+                           />
+                        </View>
+                        <View style={styles.basicButton}>
+                           <Button
+                              title="Leave game"
+                              onPress={() => removePlayer(index)}
+                           />
+                        </View>
                      </View>
                   </>
                ) :
@@ -161,7 +196,7 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                   ) :
                      gameState.turn === index && !player.folded ? (
                         <>
-                           <View style={{ flexDirection: 'row', alignItems:'center', marginBottom: 20 }}>
+                           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
                               <TextInput
                                  value={betValue}
                                  onChangeText={text => {
@@ -182,45 +217,54 @@ export default function PlayerListItem({ player, index, gameState, setGameState,
                                  keyboardType="numeric"
                                  placeholder={gameState.toCall > 0 ? "Raise pot%" : "Bet pot%"}
                               />
-                              <View style={{marginLeft: 20}}>
-                                 <Button
-                                    title='Min raise'
-                                    onPress={() => {
-                                       const minRaise = Math.max(gameState.toCall * 2, gameState.bigBlind)
-                                       setBetValue(minRaise.toString())
-                                       setBetPercentage(Math.ceil((minRaise / gameState.pot) * 100).toString())
-                                    }}
-                                 />
+                              <View style={{ marginLeft: 20 }}>
+                                 <View style={styles.basicButton}>
+                                    <Button
+                                       title='Min raise'
+                                       onPress={() => {
+                                          const minRaise = Math.max(gameState.toCall * 2, gameState.bigBlind)
+                                          setBetValue(minRaise.toString())
+                                          setBetPercentage(Math.ceil((minRaise / gameState.pot) * 100).toString())
+                                       }}
+                                    />
+                                 </View>
                               </View>
                            </View>
                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                              <Button
-                                 title={gameState.toCall > 0 ? "Raise to" : "Bet"}
-                                 onPress={() => bet(parseInt(betValue))}
-                              />
-                              <Button
-                                 title="All-in"
-                                 onPress={() => bet(player.balance)}
-                              />
-                              <Button
-                                 title={gameState.toCall <= player.bet ? 'Check' : 'Call'}
-                                 onPress={() => {
-                                    if (gameState.toCall != 0) {
-                                       call()
-                                    } else {
-                                       setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
-
-                                    }
-                                 }}
-                              />
-                              <Button
-                                 title="Fold"
-                                 onPress={() => {
-                                    const newPlayers = [...gameState.players]
-                                    newPlayers[index].folded = true
-                                    setGameState({ ...gameState, players: newPlayers, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
-                                 }}
-                              />
+                              <View style={styles.basicButton}>
+                                 <Button
+                                    title={gameState.toCall > 0 ? "Raise to" : "Bet"}
+                                    onPress={() => bet(parseInt(betValue))}
+                                 />
+                              </View>
+                              <View style={styles.basicButton}>
+                                 <Button
+                                    title="All-in"
+                                    onPress={() => allin()}
+                                 />
+                              </View>
+                              <View style={styles.basicButton}>
+                                 <Button
+                                    title={gameState.toCall <= player.bet ? 'Check' : 'Call'}
+                                    onPress={() => {
+                                       if (gameState.toCall != 0) {
+                                          call()
+                                       } else {
+                                          setGameState({ ...gameState, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
+                                       }
+                                    }}
+                                 />
+                              </View>
+                              <View style={styles.basicButton}>
+                                 <Button
+                                    title="Fold"
+                                    onPress={() => {
+                                       const newPlayers = [...gameState.players]
+                                       newPlayers[index].folded = true
+                                       setGameState({ ...gameState, players: newPlayers, turn: (gameState.turn + 1) % gameState.players.length, roundStart: false })
+                                    }}
+                                 />
+                              </View>
                            </View>
                         </>
                      ) : (null)}
@@ -238,7 +282,9 @@ const styles = StyleSheet.create({
    input: {
       marginVertical: 12,
       borderRadius: 15,
-      padding: 10,
+      borderColor: 'black',
+      borderWidth: 1,
+      padding: 8,
       width: 100,
       backgroundColor: 'white',
       shadowColor: "#000",
@@ -251,9 +297,10 @@ const styles = StyleSheet.create({
       elevation: 5,
    },
    basicButton: {
-      marginVertical: 20,
+      // marginVertical: 20,
       // width: 200,
       alignSelf: 'center',
-      borderRadius: 30,
+      borderRadius: 15,
+      overflow: 'hidden',
    },
 });

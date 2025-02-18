@@ -47,33 +47,31 @@ export default function MainScreen() {
 
    const [winners, setWinners] = useState<number[]>([]);
 
-   //if only 1 player left after all folded todo reset total bets
+   //folding fucks up
 
    useEffect(() => {
-      if (gameState.players.length < 2) return;
-      const activePlayers = gameState.players.filter(player => !player.folded);
-      if (activePlayers.length === 1) {
-         const winner = activePlayers[0];
-         winner.balance += gameState.pot;
-         setGameState({
-            ...gameState,
-            players: gameState.players.map(player => player.name === winner.name ? winner : { ...player, folded: false }),
-            round: Round.End,
-            pot: 0,
-            toCall: 0,
-         });
-      }
-   }, [gameState.players]);
-
-   useEffect(() => {
+      console.log('asd2')
       if (gameState.players.length < 2) return;
       const newPlayers = [...gameState.players];
-      let activePlayers = newPlayers.filter(player => !player.folded && player.balance > 0);
-      if (activePlayers.length === 0 && (gameState.round != Round.Showdown && gameState.round != Round.End)) {
+      const activePlayers = newPlayers.filter(player => !player.folded && player.balance > 0);
+      // if (notFoldedPlayers.length === 1) {
+      //    console.log('asd')
+      //    const winner = notFoldedPlayers[0];
+      //    winner.balance += gameState.pot;
+      //    setGameState({
+      //       ...gameState,
+      //       players: gameState.players.map(player => player.name === winner.name ? {...winner, totalBet: 0} : { ...player, folded: false, totalBet: 0 }),
+      //       round: Round.End,
+      //       pot: 0,
+      //       toCall: 0,
+      //       roundStart: true
+      //    });
+      // }
+      if (activePlayers.length === 1 && (activePlayers[0].bet >= gameState.toCall && gameState.round != Round.Showdown && gameState.round != Round.End)) {
          changeStage();
          return;
       }
-      if (activePlayers.length === 1 && (activePlayers[0].bet >= gameState.toCall && gameState.round != Round.Showdown && gameState.round != Round.End)) {
+      if (activePlayers.length < 1 && (gameState.round != Round.Showdown && gameState.round != Round.End)) {
          changeStage();
          return;
       }
@@ -196,17 +194,17 @@ export default function MainScreen() {
             <TextInput
                value={newPlayer.name}
                onChangeText={text => setNewPlayer({ ...newPlayer, name: text })}
-               style={styles.input}
+               style={[styles.input, {margin: 0}]}
                placeholder="Name"
             />
             <TextInput
                value={newPlayer.balance !== 0 ? newPlayer.balance.toString() : ''}
                onChangeText={text => setNewPlayer({ ...newPlayer, balance: text ? parseInt(text) : 0 })}
-               style={styles.input}
+               style={[styles.input, {margin: 0}]}
                keyboardType="numeric"
                placeholder="Buy-in (snt)"
             />
-            <View>
+            <View style={[styles.basicButton]}>
                <Button
                   title='Add player'
                   onPress={() => {
@@ -217,7 +215,8 @@ export default function MainScreen() {
                            balance: newPlayer.balance,
                            bet: 0,
                            totalBet: 0,
-                           folded: false
+                           folded: false,
+                           buyin: newPlayer.balance
                         }]
                      })
                      setNewPlayer({ name: '', balance: 0 })
@@ -249,40 +248,42 @@ export default function MainScreen() {
                <Text style={{ fontWeight: 'bold' }}>Players: {gameState.players.filter((p) => p.folded === false).length}</Text>
                {gameState.round === Round.End ? null : <Text style={{ fontWeight: 'bold', fontSize: 20, color: '#8b0000' }}>{gameState.round}</Text>}
                {gameState.round === Round.End && gameState.players.length > 1 && !gameState.players.some(player => player.balance < gameState.bigBlind) && gameState.bigBlind > 0 ? (
-                  <Button
-                     title="Start"
-                     onPress={() => {
-                        const newPlayers = [...gameState.players]
-                        newPlayers.forEach(player => {
-                           player.bet = 0
-                           // player.totalBet = 0
-                        })
-                        let nextRound = Round.PreFlop;
-                        let dealer;
-                        if (gameState.dealer === null) {
-                           dealer = Math.floor(Math.random() * gameState.players.length);
-                        } else {
-                           dealer = (gameState.dealer + 1) % gameState.players.length;
-                        }
-                        newPlayers[(dealer + 1) % gameState.players.length].bet = gameState.smallBlind;
-                        newPlayers[(dealer + 1) % gameState.players.length].totalBet = gameState.smallBlind;
-                        newPlayers[(dealer + 1) % gameState.players.length].balance -= gameState.smallBlind;
-                        newPlayers[(dealer + 2) % gameState.players.length].bet = gameState.bigBlind;
-                        newPlayers[(dealer + 2) % gameState.players.length].totalBet = gameState.bigBlind;
-                        newPlayers[(dealer + 2) % gameState.players.length].balance -= gameState.bigBlind;
-                        setGameState({
-                           ...gameState,
-                           players: newPlayers,
-                           round: nextRound,
-                           toCall: gameState.bigBlind,
-                           pot: gameState.smallBlind + gameState.bigBlind,
-                           dealer: dealer,
-                           turn: (dealer + 3) % gameState.players.length,
-                           lastAction: (dealer + 3) % gameState.players.length,
-                           roundStart: true
-                        })
-                     }}
-                  />
+                  <View style={styles.basicButton}>
+                     <Button
+                        title="Start"
+                        onPress={() => {
+                           const newPlayers = [...gameState.players]
+                           newPlayers.forEach(player => {
+                              player.bet = 0
+                              // player.totalBet = 0
+                           })
+                           let nextRound = Round.PreFlop;
+                           let dealer;
+                           if (gameState.dealer === null) {
+                              dealer = Math.floor(Math.random() * gameState.players.length);
+                           } else {
+                              dealer = (gameState.dealer + 1) % gameState.players.length;
+                           }
+                           newPlayers[(dealer + 1) % gameState.players.length].bet = gameState.smallBlind;
+                           newPlayers[(dealer + 1) % gameState.players.length].totalBet = gameState.smallBlind;
+                           newPlayers[(dealer + 1) % gameState.players.length].balance -= gameState.smallBlind;
+                           newPlayers[(dealer + 2) % gameState.players.length].bet = gameState.bigBlind;
+                           newPlayers[(dealer + 2) % gameState.players.length].totalBet = gameState.bigBlind;
+                           newPlayers[(dealer + 2) % gameState.players.length].balance -= gameState.bigBlind;
+                           setGameState({
+                              ...gameState,
+                              players: newPlayers,
+                              round: nextRound,
+                              toCall: gameState.bigBlind,
+                              pot: gameState.smallBlind + gameState.bigBlind,
+                              dealer: dealer,
+                              turn: (dealer + 3) % gameState.players.length,
+                              lastAction: (dealer + 3) % gameState.players.length,
+                              roundStart: true
+                           })
+                        }}
+                     />
+                  </View>
                ) : null}
                <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ fontWeight: 'bold' }}>Pot: {(gameState.pot / 100).toFixed(2)} €</Text>
@@ -292,12 +293,14 @@ export default function MainScreen() {
             {/* <Text>winners: {winners}</Text> */}
             {/* <Text>rounstart: {gameState.roundStart.toString()}, lastAction: {gameState.lastAction}</Text> */}
             {gameState.round === Round.Showdown ? (
-               <Button
-                  title="Winner, winner, chicken dinner"
-                  onPress={() => {
-                     calculateWinnings()
-                  }}
-               />
+               <View style={styles.basicButton}>
+                  <Button
+                     title="Winner, winner, chicken dinner"
+                     onPress={() => {
+                        calculateWinnings()
+                     }}
+                  />
+               </View>
             ) : null}
          </View>
          <FlatList
@@ -329,12 +332,15 @@ const styles = StyleSheet.create({
    },
    newPlayerContainer: {
       flexDirection: 'row',
-      justifyContent: 'flex-start',
+      justifyContent: 'space-between',
       alignItems: 'center',
+      margin: 10
    },
    input: {
       margin: 12,
       borderRadius: 15,
+      borderColor: 'black',
+      borderWidth: 1,
       paddingVertical: 5,
       paddingHorizontal: 10,
       width: 130,
@@ -349,9 +355,8 @@ const styles = StyleSheet.create({
       elevation: 5,
    },
    basicButton: {
-      marginVertical: 20,
-      // width: 200,
       alignSelf: 'center',
-      borderRadius: 30,
+      borderRadius: 15,
+      overflow: 'hidden',
    },
 });

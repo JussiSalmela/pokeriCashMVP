@@ -4,6 +4,7 @@ type Player = {
    bet: number,
    totalBet: number,
    folded: boolean,
+   buyin: number,
 }
 
 type GameState = {
